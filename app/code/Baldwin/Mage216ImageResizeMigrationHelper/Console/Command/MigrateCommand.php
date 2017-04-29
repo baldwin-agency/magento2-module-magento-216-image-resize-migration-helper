@@ -2,22 +2,22 @@
 
 namespace Baldwin\Mage216ImageResizeMigrationHelper\Console\Command;
 
-use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-use Magento\Framework\App\Area;
-use Magento\Framework\Filesystem;
-use Magento\Store\Model\ScopeInterface;
-use Magento\Framework\Encryption\Encryptor;
-use Magento\Framework\App\State as AppState;
 use Magento\Catalog\Helper\Image as ImageHelper;
-use Magento\Framework\App\Filesystem\DirectoryList;
-use Magento\Framework\Encryption\EncryptorInterface;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Catalog\Model\Product\Media\Config as MediaConfig; // not using interface, because Magento 2.1.5 hasn't got this one defined in the di.xml file
+use Magento\Framework\App\Area;
+use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\App\Filesystem\DirectoryList;
+use Magento\Framework\App\State as AppState;
+use Magento\Framework\Encryption\Encryptor;
+use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Framework\Filesystem;
 use Magento\Framework\View\ConfigInterface as ViewConfigInterface;
+use Magento\Store\Model\ScopeInterface;
 use Magento\Theme\Model\ResourceModel\Theme\Collection as ThemeCollection;
 
 // SOME DOCUMENTATION
