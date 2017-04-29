@@ -20,6 +20,11 @@ use Magento\Catalog\Model\Product\Media\Config as MediaConfig; // not using inte
 use Magento\Framework\View\ConfigInterface as ViewConfigInterface;
 use Magento\Theme\Model\ResourceModel\Theme\Collection as ThemeCollection;
 
+// UNTESTED:
+// - images on multiple storeviews
+// - watermarks
+// - special image manipulations: rotation, different background colors, aspect_ratio, frame, transparency, constrain
+
 class MigrateCommand extends Command
 {
     const COMMAND_NAME = 'catalog:image:baldwin-migrate';
