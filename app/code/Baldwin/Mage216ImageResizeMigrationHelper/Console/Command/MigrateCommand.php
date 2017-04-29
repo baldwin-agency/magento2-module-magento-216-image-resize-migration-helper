@@ -67,8 +67,8 @@ class MigrateCommand extends Command
     {
         $this->appState->setAreaCode('catalog');
 
-        $this->mapOldVsNewFilepaths();
-        $this->migrateOldVsNewFilepaths();
+        $mapping = $this->mapOldVsNewFilepaths();
+        $this->migrateOldVsNewFilepaths($mapping);
         $this->displayMigrationSummary();
 
         $output->writeln("<info>DONE</info>");
@@ -79,6 +79,8 @@ class MigrateCommand extends Command
      */
     private function mapOldVsNewFilepaths()
     {
+        $mapping = [];
+
         $imageDataArray = [];
 
         foreach ($this->themeCollection->loadRegisteredThemes() as $theme)
@@ -99,21 +101,27 @@ class MigrateCommand extends Command
         foreach ($imageDataArray as $imageData)
         {
             $oldFilePath = $this->getOldFilepath($imageData);
-            // $newFilePath = $this->getNewFilepath($imageData);
+            $newFilePath = $this->getNewFilepath($imageData);
 
             // print_r($imageData);
             // var_dump($newFilePath);
+
+            $mapping[] = [
+                'imageData' => $imageData,
+                'oldPath'   => $oldFilePath,
+                'newPath'   => $newFilePath,
+            ];
         }
 
-        var_dump(count($imageDataArray));
+        return $mapping;
     }
 
     /**
      * This method copies or symlinks the old to the new filepaths
      */
-    private function migrateOldVsNewFilepaths()
+    private function migrateOldVsNewFilepaths(array $mapping)
     {
-
+        print_r($mapping);
     }
 
     /**
@@ -125,13 +133,13 @@ class MigrateCommand extends Command
     }
 
     // copied some stuff from Magento 2.1.5's Magento\Catalog\Model\Product\Image::setBaseFile
-    private function getOldFilepath($imageData)
+    private function getOldFilepath(array $imageData)
     {
         $type = isset($imageData['type']) ? $imageData['type'] : null;
 
         // build new filename (most important params)
         $path = [
-            $this->mediaConfig->getBaseMediaPath(),
+            $this->getImageContextPath(),
             'cache',
             $type, // used to be getDestinationSubdir, but that should be the same as 'type'
         ];
@@ -176,21 +184,18 @@ class MigrateCommand extends Command
         }
 
         $path[] = md5(implode('_', $miscParams));
-
         $path = implode('/', $path);
-
-        var_dump($path);
 
         return $path;
     }
 
     // copied some stuff from Magento 2.1.6's Magento\Catalog\Model\View\AssetImage class
-    private function getNewFilepath($imageData)
+    private function getNewFilepath(array $imageData)
     {
         $miscParams = $this->buildMiscParams($imageData);
         $miscPath = $this->encryptor->hash(implode('_', $miscParams), Encryptor::HASH_VERSION_MD5);
 
-        $result = $this->getContextPath();
+        $result = $this->getImageContextPath();
         $result = $this->join($result, 'cache');
         $result = $this->join($result, $miscPath);
         // $result = $this->join($result, $filePath);
@@ -201,7 +206,7 @@ class MigrateCommand extends Command
     }
 
     // based on Magento 2.1.6's Magento\Catalog\Model\View\Asset\Image\Context::getPath, which doesn't exist in 2.1.5
-    private function getContextPath()
+    private function getImageContextPath()
     {
         return $this->mediaDirectory->getAbsolutePath($this->mediaConfig->getBaseMediaPath());
     }
