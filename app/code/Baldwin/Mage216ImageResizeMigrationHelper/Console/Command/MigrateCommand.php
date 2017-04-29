@@ -98,10 +98,11 @@ class MigrateCommand extends Command
 
         foreach ($imageDataArray as $imageData)
         {
-            $newFilePath = $this->getNewFilepath($imageData);
+            $oldFilePath = $this->getOldFilepath($imageData);
+            // $newFilePath = $this->getNewFilepath($imageData);
 
-            print_r($imageData);
-            var_dump($newFilePath);
+            // print_r($imageData);
+            // var_dump($newFilePath);
         }
 
         var_dump(count($imageDataArray));
@@ -121,6 +122,66 @@ class MigrateCommand extends Command
     private function displayMigrationSummary()
     {
 
+    }
+
+    // copied some stuff from Magento 2.1.5's Magento\Catalog\Model\Product\Image::setBaseFile
+    private function getOldFilepath($imageData)
+    {
+        $type = isset($imageData['type']) ? $imageData['type'] : null;
+
+        // build new filename (most important params)
+        $path = [
+            $this->mediaConfig->getBaseMediaPath(),
+            'cache',
+            $type, // used to be getDestinationSubdir, but that should be the same as 'type'
+        ];
+        if (!empty($imageData['width']) || !empty($imageData['height'])) {
+            $path[] = "{$imageData['width']}x{$imageData['height']}";
+        }
+
+        // add misk params as a hash
+        $miscParams = [
+            (empty($imageData['aspect_ratio']) ? '' : 'non') . 'proportional',
+            (empty($imageData['frame']) ? '' : 'no') . 'frame',
+            (empty($imageData['transparency']) ? '' : 'no') . 'transparency',
+            (empty($imageData['constrain']) ? 'do' : 'not') . 'constrainonly',
+            $this->rgbToString((!empty($imageData['background']) ? $imageData['background'] : [255, 255, 255])),
+            'angle' . (!empty($imageData['angle']) ? $imageData['angle'] : null),
+            'quality' . 80,
+        ];
+
+        // if has watermark add watermark params to hash
+        $watermarkFile = $this->scopeConfig->getValue(
+            "design/watermark/{$type}_image",
+            ScopeInterface::SCOPE_STORE
+        );
+
+        if ($watermarkFile) {
+            $watermarkSize = $this->scopeConfig->getValue(
+                "design/watermark/{$type}_size",
+                ScopeInterface::SCOPE_STORE
+            );
+
+            $miscParams['watermark_file'] = $watermarkFile;
+            $miscParams['watermark_image_opacity'] = $this->scopeConfig->getValue(
+                "design/watermark/{$type}_imageOpacity",
+                ScopeInterface::SCOPE_STORE
+            );
+            $miscParams['watermark_position'] = $this->scopeConfig->getValue(
+                "design/watermark/{$type}_position",
+                ScopeInterface::SCOPE_STORE
+            );
+            $miscParams['watermark_width'] = !empty($watermarkSize['width']) ? $watermarkSize['width'] : null;
+            $miscParams['watermark_height'] = !empty($watermarkSize['width']) ? $watermarkSize['height'] : null;
+        }
+
+        $path[] = md5(implode('_', $miscParams));
+
+        $path = implode('/', $path);
+
+        var_dump($path);
+
+        return $path;
     }
 
     // copied some stuff from Magento 2.1.6's Magento\Catalog\Model\View\AssetImage class
@@ -223,6 +284,7 @@ class MigrateCommand extends Command
     }
 
     // copy from Magento 2.1.6's Magento\Catalog\Model\Product\Image\ParamsBuilder::rgbToString
+    // this is also 100% the same as Magento's 2.1.5 Magento\Catalog\Model\Product\Image::_rgbToString
     public function rgbToString($rgbArray)
     {
         $result = [];
