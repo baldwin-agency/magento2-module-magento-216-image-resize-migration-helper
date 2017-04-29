@@ -20,14 +20,29 @@ use Magento\Catalog\Model\Product\Media\Config as MediaConfig; // not using inte
 use Magento\Framework\View\ConfigInterface as ViewConfigInterface;
 use Magento\Theme\Model\ResourceModel\Theme\Collection as ThemeCollection;
 
+// SOME DOCUMENTATION
+// - Before running this command, make sure you are on Magento 2.1.4 or 2.1.5 and you have run `bin/magento catalog:images:resize` first!
+// - Then run `bin/magento catalog:image:baldwin:migrate-to-216` (preferably using the symlink-new-to-old option)
+// - After this is done, you can upgrade Magento to version 2.1.6 (not to a later version!, as we don't know what Magento will change in later versions)
+// - Now test your shop, hopefully all images are still visible
+// - You can now remove all old files (TODO: create a new command for this)
+// - Finally, run `bin/magento catalog:images:resize` again, just to be sure all images in the 2.1.6 format are certainly being generated
+
 // UNTESTED:
 // - images on multiple storeviews
 // - watermarks
 // - special image manipulations: rotation, different background colors, aspect_ratio, frame, transparency, constrain
 
+// ROADMAP:
+// - include a fix for @airdrumz reported issue with hidden images used on the product listing not being generated:
+//   https://github.com/magento/magento2/issues/9276#issuecomment-295691637
+// - include a fix for problems 1 & 2 reported here: https://github.com/magento/magento2/issues/8145, so the `bin/magento catalog:images:resize` runs much quicker
+//   (instead of removing `image_type` type param, we should hardcode it to 'thumbnail' for example, this avoid backwards compatible issues, the same problem which was reponsible for the existance of this very own module)
+// - see if we can try to re-enable the behavior of resizing images on the frontend
+
 class MigrateCommand extends Command
 {
-    const COMMAND_NAME = 'catalog:image:baldwin-migrate';
+    const COMMAND_NAME = 'catalog:image:baldwin:migrate-to-216';
 
     const STRATEGY_COPY               = 1;
     const STRATEGY_SYMLINK_OLD_TO_NEW = 2;
@@ -75,6 +90,8 @@ class MigrateCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        // TODO: verify that this command is being run from Magento 2.1.4 or 2.1.5 only, otherwise abort
+
         $this->appState->setAreaCode('catalog');
 
         $mapping = $this->mapOldVsNewFilepaths();
