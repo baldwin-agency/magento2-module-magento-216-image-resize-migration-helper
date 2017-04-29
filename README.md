@@ -8,6 +8,12 @@ This module is super experimental, wasn't tested (yet) on a real-world Magento p
 
 TODO
 
+## How to use this module
+
+TODO
+
+(there is some very rudimentary documentation in the MigrateCommand.php file)
+
 ## Extra fixes
 
 TODO
