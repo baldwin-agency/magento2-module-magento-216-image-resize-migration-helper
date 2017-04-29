@@ -2,6 +2,7 @@
 
 namespace Baldwin\Mage216ImageResizeMigrationHelper\Console\Command;
 
+use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -69,7 +70,7 @@ class MigrateCommand extends Command
 
         $mapping = $this->mapOldVsNewFilepaths();
         $this->migrateOldVsNewFilepaths($mapping);
-        $this->displayMigrationSummary();
+        $this->displayMigrationSummary($mapping, $output);
 
         $output->writeln("<info>DONE</info>");
     }
@@ -119,17 +120,37 @@ class MigrateCommand extends Command
     /**
      * This method copies or symlinks the old to the new filepaths
      */
-    private function migrateOldVsNewFilepaths(array $mapping)
+    private function migrateOldVsNewFilepaths(array &$mapping)
     {
-        print_r($mapping);
+        foreach ($mapping as $key => $line)
+        {
+            $mapping[$key]['status'] = '<info>symlinked/copied/failed/...</info>'; // TODO
+        }
     }
 
     /**
      * This method displays a summary of what was done
      */
-    private function displayMigrationSummary()
+    private function displayMigrationSummary(array $mapping, OutputInterface $output)
     {
+        $headers = ['Old path', 'New Path', 'Status'];
+        $rows = [];
 
+        foreach ($mapping as $line)
+        {
+            $oldPath = str_replace($this->getImageContextPath(), '', $line['oldPath']);
+            $newPath = str_replace($this->getImageContextPath(), '', $line['newPath']);
+            $status  = $line['status'];
+            $rows[] = [$oldPath, $newPath, $status];
+        }
+
+        $table = new Table($output);
+        $table
+            ->setHeaders($headers)
+            ->setRows($rows)
+        ;
+
+        $table->render();
     }
 
     // copied some stuff from Magento 2.1.5's Magento\Catalog\Model\Product\Image::setBaseFile
