@@ -7,13 +7,15 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 use Magento\Framework\App\Area;
+use Magento\Framework\Filesystem;
 use Magento\Store\Model\ScopeInterface;
 use Magento\Framework\Encryption\Encryptor;
 use Magento\Framework\App\State as AppState;
 use Magento\Catalog\Helper\Image as ImageHelper;
-use Magento\Framework\View\Asset\ContextInterface;
+use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Catalog\Model\Product\Media\Config as MediaConfig; // not using interface, because Magento 2.1.5 hasn't got this one defined in the di.xml file
 use Magento\Framework\View\ConfigInterface as ViewConfigInterface;
 use Magento\Theme\Model\ResourceModel\Theme\Collection as ThemeCollection;
 
@@ -22,26 +24,30 @@ class MigrateCommand extends Command
     const COMMAND_NAME = 'catalog:image:baldwin-migrate';
 
     private $appState;
+    private $mediaConfig;
     private $themeCollection;
-    private $context;
     private $encryptor;
     private $viewConfig;
     private $scopeConfig;
+    private $mediaDirectory;
 
     public function __construct(
         AppState             $appState,
+        Filesystem           $filesystem,
+        MediaConfig          $mediaConfig,
         ThemeCollection      $themeCollection,
-        ContextInterface     $context,
         EncryptorInterface   $encryptor,
         ViewConfigInterface  $viewConfig,
         ScopeConfigInterface $scopeConfig
     ) {
         $this->appState        = $appState;
+        $this->mediaConfig     = $mediaConfig;
         $this->themeCollection = $themeCollection;
-        $this->context         = $context;
         $this->encryptor       = $encryptor;
         $this->viewConfig      = $viewConfig;
         $this->scopeConfig     = $scopeConfig;
+        $this->mediaDirectory  = $filesystem->getDirectoryWrite(DirectoryList::MEDIA);
+        $this->mediaDirectory->create($this->mediaConfig->getBaseMediaPath());
 
         parent::__construct();
     }
@@ -123,7 +129,7 @@ class MigrateCommand extends Command
         $miscParams = $this->buildMiscParams($imageData);
         $miscPath = $this->encryptor->hash(implode('_', $miscParams), Encryptor::HASH_VERSION_MD5);
 
-        $result = $this->context->getPath();
+        $result = $this->getContextPath();
         $result = $this->join($result, 'cache');
         $result = $this->join($result, $miscPath);
         // $result = $this->join($result, $filePath);
@@ -131,6 +137,12 @@ class MigrateCommand extends Command
         $path = DIRECTORY_SEPARATOR . $result;
 
         return $path;
+    }
+
+    // based on Magento 2.1.6's Magento\Catalog\Model\View\Asset\Image\Context::getPath, which doesn't exist in 2.1.5
+    private function getContextPath()
+    {
+        return $this->mediaDirectory->getAbsolutePath($this->mediaConfig->getBaseMediaPath());
     }
 
     // copy from Magento 2.1.6's Magento\Catalog\Model\View\Asset\Image::join
