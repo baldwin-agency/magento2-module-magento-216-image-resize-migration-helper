@@ -29,6 +29,10 @@ class MigrateCommand extends Command
 {
     const COMMAND_NAME = 'catalog:image:baldwin-migrate';
 
+    const STRATEGY_COPY               = 1;
+    const STRATEGY_SYMLINK_OLD_TO_NEW = 2;
+    const STRATEGY_SYMLINK_NEW_TO_OLD = 3;
+
     private $appState;
     private $mediaConfig;
     private $themeCollection;
@@ -80,6 +84,12 @@ class MigrateCommand extends Command
         $output->writeln("<info>DONE</info>");
     }
 
+    private function getStrategy()
+    {
+        // TODO: get from cli input argument
+        return self::STRATEGY_SYMLINK_NEW_TO_OLD;
+    }
+
     /**
      * This method figures out how the old pre-Magento 2.1.6 filepaths are mapped against the Magento 2.1.6 filepaths
      */
@@ -129,7 +139,84 @@ class MigrateCommand extends Command
     {
         foreach ($mapping as $key => $line)
         {
-            $mapping[$key]['status'] = '<info>symlinked/copied/failed/...</info>'; // TODO
+            $status = '<error>Skipped for an unknown reason</error>';
+
+            $oldPath = $line['oldPath'];
+            $newPath = $line['newPath'];
+
+            if (!is_dir($oldPath))
+            {
+                $status = '<comment>Old path doesn\'t exist or isn\'t a directory, skipping...</comment>';
+            }
+            else if (is_link($oldPath))
+            {
+                $status = '<comment>Old path is already a symlink, skipping...</comment>';
+            }
+            else
+            {
+                if (file_exists($newPath) || is_link($newPath))
+                {
+                    $status = '<question>New path already exists, skipping...</question>';
+                }
+                else
+                {
+                    switch ($this->getStrategy())
+                    {
+                        case self::STRATEGY_COPY:
+                            // not the fastest option, but is probably the safest one if you aren't sure
+                            // TODO: maybe use http://symfony.com/doc/2.8/components/filesystem.html#mirror ?
+                        break;
+                        case self::STRATEGY_SYMLINK_OLD_TO_NEW:
+                            // only usefull for testing
+                            // just symlink old to new
+
+                            $success = symlink($oldPath, $newPath);
+                            if ($success)
+                            {
+                                $status = '<info>Successfully symlinked old path to new path</info>';
+                            }
+                            else
+                            {
+                                $status = '<error>Something went wrong while trying to symlink old path to new path</error>';
+                            }
+                        break;
+                        case self::STRATEGY_SYMLINK_NEW_TO_OLD:
+                            // should be used on production
+                            // first move old directories to new directories
+                            // then symlink new to old
+
+                            $moveSuccess = rename($oldPath, $newPath);
+                            if ($moveSuccess)
+                            {
+                                $linkSuccess = symlink($newPath, $oldPath);
+                                if ($linkSuccess)
+                                {
+                                    $status = '<info>Successfully first moved old path to new path and then symlinked new path to old path</info>';
+                                }
+                                else
+                                {
+                                    // yikes, let's try to revert what we have already done
+                                    $reverseMoveSuccess = rename($newPath, $oldPath);
+                                    if ($reverseMoveSuccess)
+                                    {
+                                        $status = '<error>Symlink from new path to old path didn\'t work out, we reverted everything to its initial state</error>';
+                                    }
+                                    else
+                                    {
+                                        $status = '<error>Yikes! Something went horribly wrong, we renamed old path to new path, tried to create a symlink from new path to old path, this failed, then we tried to rename new path to old path again and this failed to, this isn\'t good!</error>';
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                $status = '<error>Something went wrong while trying to rename old path to new path</error>';
+                            }
+                        break;
+                    }
+                }
+            }
+
+            $mapping[$key]['status'] = $status;
         }
     }
 
@@ -148,6 +235,10 @@ class MigrateCommand extends Command
             $status  = $line['status'];
             $rows[] = [$oldPath, $newPath, $status];
         }
+
+        $output->writeln('');
+        $output->writeln('Base directory: <info>' . $this->getImageContextPath() . '</info>');
+        $output->writeln('');
 
         $table = new Table($output);
         $table
