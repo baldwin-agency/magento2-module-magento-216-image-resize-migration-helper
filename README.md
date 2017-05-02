@@ -34,13 +34,13 @@ Now, on the one hand, it is great there is this fallback like this, because this
 
 ### Changes in Magento 2.1.6
 
-Magento 2.1.6 tries to address this problem, by making sure all possible resizd images are  being generated when saving a product, or when running `bin/magento catalog:images:resize`.
+Magento 2.1.6 tries to address this problem, by making sure all possible resized images are being generated when saving a product, or when running `bin/magento catalog:images:resize`.
 This is mostly correct (except for a new bug [reported by @airdrumz](https://github.com/magento/magento2/issues/9276#issuecomment-295691637), but that's beside the question).  
 2.1.6 also disabled resizing images on the frontend, since in theory, you shouldn't need to do this any longer, since all images should already exist before loading a page.
 
 The other big change, is how Magento creates the directory structure as to where the images are being stored in the filesystem.
 Before 2.1.6, this used to be something like: `pub/media/catalog/product/cache/1/image/642x829/e9c3970ab036de70892d86c6d221abfe/`, where the directory structure contained a storeview id, the type of the image, the resolution and a hash of some parameters thrown together, which should make the hash unique for every different manipulation you can perform on a certain image (rotation, bg color, watermark, ...)
-In 2.1.6, this path changes to something like: `pub/media/catalog/product/cache/054cdce737e4fd5dce52bb5ae351a76f`. So the only thing that remains in the directory structure is a hash of a bunch of parameters, including resolution, type of image, width & height, and so on, ...
+In 2.1.6, this path changes to something like: `pub/media/catalog/product/cache/054cdce737e4fd5dce52bb5ae351a76f`. So the only thing that remains in the directory structure is a hash of a bunch of parameters, including type of image, width & height, watermarks, and so on...
 
 ### Problems when upgrading to 2.1.6
 
@@ -55,9 +55,9 @@ The problem is webshops with tons and tons of products and images, say something
 ### The solution presented by this module
 
 This module tries to ease this migration pain, by figuring out how the pre-2.1.6 directory structure was formed and then try to map this to the new directory structure of 2.1.6.
-Currently we assume you install this module on a 2.1.4 or 2.1.5 installation, run a command which moves the old directory structure to the new one, and then places symlinks where the old directory structure is supposed to be and links them to the new filestructure. In this way, the old 2.1.4 or 2.1.5 Magento will continue to show images, as it uses the symlinks which points to the correct images. And after you upgraded your shop to 2.1.6, it uses the new directory structure, so after the 2.1.6 upgrade went successfull, you can then cleanup the symlinks this module created.
+Currently we assume you install this module on a 2.1.4/2.1.5 installation, run a command which moves the old directory structure to the new one, and then places symlinks where the old directory structure is supposed to be and links them to the new filestructure. In this way, the old 2.1.4/2.1.5 Magento will continue to show images, as it uses the symlinks which points to the correct images. And after you upgraded your shop to 2.1.6, it uses the new directory structure, so after the 2.1.6 upgrade went successfull, you can then cleanup the symlinks this module created.
 
-Well, that's the idea behind this, this was very briefly tested on a real-world Magento project, but not very thouroughly enough yet, to declare this module stable (and certainly not very clean, the code is a mess currently).
+Well, that's the general idea behind this, this was very briefly tested on a real-world Magento project, but not very thouroughly enough yet to be able to declare this module stable (and certainly not very clean, the code is a mess currently).
 So again: use at your own risk.
 
 ## How to use this module
@@ -67,7 +67,7 @@ So again: use at your own risk.
 1. Make sure your webshop is running Magento 2.1.4 or 2.1.5 (it might work on older versions, but we didn't bother testing this, the composer constraints are very strict, so it shouldn't install on any other version then 2.1.4 - 2.1.6)
 1. Run `bin/magento catalog:images:resize` so most images will already be generated in the old directory structure (this might take a couple of minutes/hours/days, depending on how many images your store has)
 1. Install and enable this module (TODO: add composer instructions)
-1. Run `bin/magento catalog:image:baldwin:migrate-to-216`, it will present you with some output about what was done, or if some errors were encountered
+1. Run `bin/magento catalog:image:baldwin:migrate-to-216`, it will present you with some output about what was done, or if some errors were encountered (see below for screenshot)
 1. Upgrade Magento to 2.1.6
 1. Test your shop, and hopefully all images show up on the product listing pages (if not, then this module doesn't work in your specific case, or you've run into a bug in this module)
 1. If everything went successfull, you can remove the symlinks which were generated by this command (TODO: we should add another command in this module to automate this)
@@ -79,11 +79,11 @@ So again: use at your own risk.
 
 ## Roadmap
 
-- As mentioned above, there is a [new bug introduced by 2.1.6](https://github.com/magento/magento2/issues/9276#issuecomment-295691637), where a hidden image being used on the product listing isn't getting generated, and there is no way to generate it currently, unless you hack the Magento core code, we might include a fix in this module for this problem.
-- Magento's `bin/magento catalog:images:resize` command is very inefficient, this is explained in [issue 8145](https://github.com/magento/magento2/issues/8145), we might include some fixes for those in this module (I suggested in the issue to remove the `image_type` field, but that will cause another change in the directory structure again, since that field is used to create the hash, I'd now suggest to change this to some hardcoded value, which is being used by 2.1.6, like `thumbnail` for example, this then shouldn't cause backwards compatible issues)
+- As mentioned above, there is a [new bug introduced by 2.1.6](https://github.com/magento/magento2/issues/9276#issuecomment-295691637), where a hidden image being used on the product listing aren't getting generated, and there is no way to generate them currently, unless you hack the Magento core code, we might include a fix in this module for this problem.
+- Magento's `bin/magento catalog:images:resize` command is very inefficient and can be optimized to run faster and create less files, this is explained in [issue 8145](https://github.com/magento/magento2/issues/8145), we might include some fixes for those in this module (I suggested in the issue to remove the `image_type` field, but that will cause another change in the directory structure again, since that field is used to create the hash. Instead of removing the field, I would now suggest to change this to some hardcoded value, which is being used by 2.1.6, like `thumbnail` for example, this then shouldn't cause new backwards compatible issues)
 - I think some people would appreciate it that the fallback of creating images on the frontend when they don't exist yet, is re-enabled, we might include a fix in this module for this. (this should accidentally also fix the first bullet point on the roadmap)
 
 ## Other info
 
-There are other issues in Magento 2.1.6, where a frame/border around your images might appear, Magento published a [Technical Bulleting](http://devdocs.magento.com/guides/v2.1/release-notes/tech_bull_216-imageresize.html) for this.
-I'm not sure yet if this will cause problems with this module, because you might have different `view.xml` files between 2.1.4/2.1.5 and 2.1.6, which can result in different hashes in the directory structure, so I'm not sure if this module should be able to handle different `view.xml` files, some extra research for this still needs to happen.
+There are other issues in Magento 2.1.6, where a frame/border around your images might appear, Magento published a [Technical Bulletin](http://devdocs.magento.com/guides/v2.1/release-notes/tech_bull_216-imageresize.html) for this.
+I'm not sure yet if this will cause problems with this module, because you might have different `view.xml` files between 2.1.4/2.1.5 and 2.1.6, which can result in different hashes in the directory structure, so I'm not sure if this module should be able to handle different `view.xml` files. Some extra research around this still needs to happen.
