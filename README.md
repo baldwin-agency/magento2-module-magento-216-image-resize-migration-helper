@@ -1,8 +1,12 @@
 # Magento 2 module aimed to ease the migration of resized images from Magento 2.1.4 or 2.1.5 to 2.1.6
 
+## LATEST INFO
+
+Magento version 2.1.7 was released which [reverts all the image resizing changes](http://devdocs.magento.com/guides/v2.1/release-notes/ReleaseNotes2.1.7CE.html#highlights) which were introduced in version 2.1.6, so this module has no reason to exist anymore. Please don't use this anymore, unless you know what you are getting yourself into :)
+
 ## Disclaimer
 
-This module is super experimental, wasn't yet thouroughly tested on a real-world Magento project, use at own risk!
+This module is super experimental, wasn't yet thoroughly tested on a real-world Magento project, use at own risk!
 
 If some Magento employee comes along this and finds incorrect information or bugs, feel free to contact me or open an issue. Feedback from Magento devs would be highly appreciated!
 
@@ -57,7 +61,7 @@ The problem is webshops with tons and tons of products and images, say something
 This module tries to ease this migration pain, by figuring out how the pre-2.1.6 directory structure was formed and then try to map this to the new directory structure of 2.1.6.
 Currently we assume you install this module on a 2.1.4/2.1.5 installation, run a command which moves the old directory structure to the new one, and then places symlinks where the old directory structure is supposed to be and links them to the new filestructure. In this way, the old 2.1.4/2.1.5 Magento will continue to show images, as it uses the symlinks which points to the correct images. And after you upgraded your shop to 2.1.6, it uses the new directory structure, so after the 2.1.6 upgrade went successfull, you can then cleanup the symlinks this module created.
 
-Well, that's the general idea behind this, this was very briefly tested on a real-world Magento project, but not very thouroughly enough yet to be able to declare this module stable (and certainly not very clean, the code is a mess currently).
+Well, that's the general idea behind this, this was very briefly tested on a real-world Magento project, but not very thoroughly enough yet to be able to declare this module stable (and certainly not very clean, the code is a mess currently).
 So again: use at your own risk.
 
 ## How to use this module
